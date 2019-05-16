@@ -1,0 +1,19 @@
+= Quarkus Lettuce extension
+
+This is a https://github.com/quarkusio/quarkus[Quarkus] extension for https://github.com/lettuce-io/lettuce-core[Lettuce].
+
+== deployment maven
+clean install -Dmaven.test.skip=false -Dquarkus.debug.generated-classes-dir=./target/app-generated-classes
+
+
+== runtime maven
+clean install -Dmaven.test.skip=true
+
+ 
+== Test docker
+ 
+[source,bash]
+--------------
+docker pull redis:4
+docker run --name demo.redis -e LANG=en.UTF-8 -e LC_ALL=en.UTF-8 -p 16379:6379 -d redis:4 --requirepass "mypwd"
+--------------
