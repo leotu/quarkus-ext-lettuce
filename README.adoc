@@ -14,6 +14,6 @@ clean install -Dmaven.test.skip=true
  
 [source,bash]
 --------------
-docker pull redis:4
-docker run --name demo.redis -e LANG=en.UTF-8 -e LC_ALL=en.UTF-8 -p 16379:6379 -d redis:4 --requirepass "mypwd"
+docker pull redis:alpine
+docker run --name demo.redis -e LANG=en.UTF-8 -e LC_ALL=en.UTF-8 -p 16379:6379 -d redis:alpine --requirepass "mypwd"
 --------------
