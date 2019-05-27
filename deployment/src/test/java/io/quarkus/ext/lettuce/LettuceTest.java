@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -29,8 +30,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.async.RedisStringAsyncCommands;
-import io.lettuce.core.api.sync.RedisStringCommands;
+import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.Utf8StringCodec;
 import io.quarkus.ext.lettuce.runtime.LettuceRedisClient;
@@ -45,6 +46,10 @@ import io.quarkus.test.QuarkusUnitTest;
 //@Disabled
 public class LettuceTest {
     private static final Logger LOGGER = Logger.getLogger(LettuceTest.class);
+
+    static private Jsonb jsonb = JsonbBuilder.create(new JsonbConfig() //
+            .withFormatting(true) //
+            .withBinaryDataStrategy(BinaryDataStrategy.BASE_64));
 
     @Order(1)
     @BeforeAll
@@ -146,7 +151,7 @@ public class LettuceTest {
         void onStart(@Observes StartupEvent event) {
             LOGGER.debug("onStart, event=" + event);
             action = new ServiceAction(client, "client-default", demoEvent);
-            action1 = new ServiceAction(client1, "client1-1", demoEvent);
+            action1 = new ServiceAction(client1, "client1", demoEvent);
         }
 
         void onStop(@Observes ShutdownEvent event) {
@@ -154,7 +159,7 @@ public class LettuceTest {
         }
 
         void onDemoEvent(@Observes DemoEvent event) {
-            LOGGER.debug("onDemoEvent, event.data=" + event.getData());
+            LOGGER.debugf(">>> onDemoEvent, event.data: %s", jsonb.toJson(event.getData()));
         }
 
         void testConnection() throws Exception {
@@ -202,35 +207,60 @@ public class LettuceTest {
 
         void testBasic() throws Exception {
             try (StatefulRedisConnection<String, String> connection = client.connect()) {
-                RedisStringCommands<String, String> sync = connection.sync();
+                RedisCommands<String, String> sync = connection.sync();
 
-                String reply = sync.set(prefix + ":basic-key", "basic-value");
+                String key = prefix + ":basic-key";
+                String reply = sync.set(key, "basic-value");
                 Assertions.assertEquals("OK", reply);
 
-                String value = sync.get(prefix + ":basic-key");
+                String value = sync.get(key);
 
                 Assertions.assertEquals("basic-value", value);
                 LOGGER.debugv("Successfully testBasic prefix: {0}, value: {1}", prefix, value);
+
+                long removed = sync.del(key);
+                Assertions.assertEquals(removed, 1);
+
+                value = sync.get(key);
+                Assertions.assertNull(value);
             }
         }
 
         void testAsync() throws Exception {
             try (StatefulRedisConnection<String, String> connection = client.connect()) {
-                RedisStringAsyncCommands<String, String> async = connection.async();
+                RedisAsyncCommands<String, String> async = connection.async();
 
-                RedisFuture<String> reply = async.set(prefix + ":async-key", "async-value");
+                String key = prefix + ":async-key";
+                RedisFuture<String> reply = async.set(key, "async-value");
                 Assertions.assertEquals("OK", reply.get());
 
-                RedisFuture<String> get = async.get(prefix + ":async-key");
-                Assertions.assertEquals("async-value", get.get());
+                CountDownLatch latch = new CountDownLatch(1);
+                async.get(key).thenAccept(value -> {
+                    // LOGGER.debugf("1) value: %s", value);
+                    Assertions.assertEquals("async-value", value);
+                }).thenCompose(vd -> {
+                    // LOGGER.debugf("2) vd: %s", vd);
+                    RedisFuture<Long> removed = async.del(key);
+                    return removed;
+                }).thenAccept(removed -> {
+                    // LOGGER.debugf("3) removed: %d", removed);
+                    Assertions.assertEquals(removed, 1);
+                    LOGGER.debugv("Successfully testAsync prefix: {0}", prefix);
+                    latch.countDown();
+                }).exceptionally(err -> {
+                    LOGGER.debugv("Error testAsync prefix: {0}, exception: {1}", prefix, err.toString());
+                    latch.countDown();
+                    return null;
+                });
 
-                LOGGER.debugv("Successfully testAsync prefix: {0}, value: {1}", prefix, get.get());
+                latch.await();
+                // LOGGER.debugv("End testAsync prefix: {0}", prefix);
             }
         }
 
         void testCodec() throws Exception {
             try (StatefulRedisConnection<String, Demo> connection = client.connect(new DemoRedisCodec())) {
-                RedisStringCommands<String, Demo> sync = connection.sync();
+                RedisCommands<String, Demo> sync = connection.sync();
 
                 String id = UUID.randomUUID().toString().replaceAll("-", "");
                 Demo data = new Demo();
@@ -239,12 +269,19 @@ public class LettuceTest {
                 data.setName(prefix + "-demo");
                 data.setCreatedAt(new Date());
 
-                String reply = sync.set(prefix + ":demo-key", data);
+                String key = prefix + ":demo-key";
+
+                String reply = sync.set(key, data);
                 Assertions.assertEquals("OK", reply);
 
-                Demo value = sync.get(prefix + ":demo-key");
-
+                Demo value = sync.get(key);
                 Assertions.assertEquals(data, value);
+
+                long removed = sync.del(key);
+                Assertions.assertEquals(removed, 1);
+
+                value = sync.get(key);
+                Assertions.assertNull(value);
 
                 LOGGER.debugv("Successfully testCodec prefix: {0}, value: {1}", prefix, value);
 
@@ -257,13 +294,6 @@ public class LettuceTest {
          */
         static public class DemoRedisCodec implements RedisCodec<String, Demo> {
             final private Utf8StringCodec strCodec = new Utf8StringCodec();
-            final private Jsonb jsonb;
-
-            public DemoRedisCodec() {
-                JsonbConfig config = new JsonbConfig().withFormatting(true);
-                config.withBinaryDataStrategy(BinaryDataStrategy.BASE_64);
-                this.jsonb = JsonbBuilder.create(config);
-            }
 
             @Override
             public String decodeKey(ByteBuffer bytes) {

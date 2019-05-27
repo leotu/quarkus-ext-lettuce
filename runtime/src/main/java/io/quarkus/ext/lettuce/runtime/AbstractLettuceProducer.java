@@ -32,10 +32,19 @@ public abstract class AbstractLettuceProducer {
         }
 
         LettuceItemConfig itemConfig = itemConfigOptional.get();
+        
         RedisURI redisURI = RedisURI.create(itemConfig.uri);
-        redisURI.setDatabase(itemConfig.database.orElse(0));
-        itemConfig.password.ifPresent(pwd -> redisURI.setPassword(pwd));
-
+        itemConfig.host.ifPresent(redisURI::setHost);
+        itemConfig.port.ifPresent(redisURI::setPort);
+        itemConfig.socket.ifPresent(redisURI::setSocket);
+        itemConfig.password.ifPresent(redisURI::setPassword);
+        itemConfig.database.ifPresent(redisURI::setDatabase);
+        itemConfig.sentinelMasterId.ifPresent(redisURI::setSentinelMasterId);
+        itemConfig.clientName.ifPresent(redisURI::setClientName);
+        itemConfig.ssl.ifPresent(redisURI::setSsl);
+        itemConfig.startTls.ifPresent(redisURI::setStartTls);
+        itemConfig.verifyPeer.ifPresent(redisURI::setVerifyPeer);
+        itemConfig.timeout.ifPresent(redisURI::setTimeout);
         try {
             RedisClient client = RedisClient.create(redisURI);
             return new LettuceRedisClient(client);

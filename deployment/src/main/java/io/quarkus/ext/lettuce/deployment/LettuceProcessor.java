@@ -25,7 +25,6 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
-import io.quarkus.deployment.builditem.ServiceStartBuildItem;
 import io.quarkus.deployment.builditem.substrate.ReflectiveClassBuildItem;
 import io.quarkus.deployment.recording.RecorderContext;
 import io.quarkus.deployment.util.HashUtil;
@@ -77,7 +76,9 @@ public class LettuceProcessor {
             BuildProducer<ReflectiveClassBuildItem> reflectiveClass,
             BuildProducer<UnremovableBeanBuildItem> unremovableBeans, LettuceConfig lettuceConfig,
             BuildProducer<GeneratedBeanBuildItem> generatedBean) {
-
+        if (isUnconfigured(lettuceConfig)) {
+            return null;
+        }
         reflectiveClass.produce(new ReflectiveClassBuildItem(true, true, AbstractRedisClient.class));
         reflectiveClass.produce(new ReflectiveClassBuildItem(true, true, RedisClient.class));
         reflectiveClass.produce(new ReflectiveClassBuildItem(true, false, AbstractLettuceProducer.class));
@@ -95,16 +96,22 @@ public class LettuceProcessor {
 
     @Record(ExecutionTime.RUNTIME_INIT)
     @BuildStep
-    ServiceStartBuildItem configureRedisClient(LettuceTemplate template,
+    void configureRedisClient(LettuceTemplate template,
             BuildProducer<LettuceInitializedBuildItem> lettuceInitialized, LettuceConfig lettuceConfig) {
-
-        if (!isPresentUri(lettuceConfig.defaultConfig) && lettuceConfig.namedConfig.isEmpty()) {
-            // No Lettuce has been configured so bail out
-            log.info("No Lettuce has been configured");
-            return new ServiceStartBuildItem("lettuce");
+        if (isUnconfigured(lettuceConfig)) {
+            return;
         }
         lettuceInitialized.produce(new LettuceInitializedBuildItem());
-        return new ServiceStartBuildItem("lettuce");
+    }
+
+    private boolean isUnconfigured(LettuceConfig lettuceConfig) {
+        if (!isPresentUri(lettuceConfig.defaultConfig) && lettuceConfig.namedConfig.isEmpty()) {
+            // No Lettuce has been configured so bail out
+            log.debug("No Lettuce has been configured");
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private void createLettuceProducerBean(BuildProducer<GeneratedBeanBuildItem> generatedBean,
