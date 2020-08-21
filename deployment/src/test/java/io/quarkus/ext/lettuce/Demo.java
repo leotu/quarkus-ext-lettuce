@@ -8,7 +8,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
 @SuppressWarnings("serial")
 @RegisterForReflection

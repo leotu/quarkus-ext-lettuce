@@ -2,17 +2,18 @@ package io.quarkus.ext.lettuce;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.json.bind.JsonbConfig;
@@ -21,10 +22,7 @@ import javax.json.bind.config.BinaryDataStrategy;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -33,58 +31,43 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.RedisCodec;
-import io.lettuce.core.codec.Utf8StringCodec;
+import io.lettuce.core.codec.StringCodec;
 import io.quarkus.ext.lettuce.runtime.LettuceRedisClient;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.test.QuarkusUnitTest;
 
 /**
+ * VM arguments add "-Djava.util.logging.manager=org.jboss.logmanager.LogManager"
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
 //@Disabled
 public class LettuceTest {
     private static final Logger LOGGER = Logger.getLogger(LettuceTest.class);
 
-    static private Jsonb jsonb = JsonbBuilder.create(new JsonbConfig() //
-            .withFormatting(true) //
+    static private Jsonb jsonb = JsonbBuilder.create(new JsonbConfig()
+            .withFormatting(true)
             .withBinaryDataStrategy(BinaryDataStrategy.BASE_64));
 
-    @Order(1)
-    @BeforeAll
-    static public void beforeAll() {
-        LOGGER.debug("...");
-    }
-
-    @AfterAll
-    static public void afterAll() {
-        LOGGER.debug("...");
-    }
-
-    @Order(10)
+    // @Order(10)
     @RegisterExtension
-    static final QuarkusUnitTest config = new QuarkusUnitTest() //
-            .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class) //
-                    .addAsResource("application.properties", "application.properties") //
-                    .addClasses(TestBean.class));
+    static final QuarkusUnitTest config = new QuarkusUnitTest()
+            .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
+                    .addAsResource("application.properties", "application.properties")
+                    .addClasses(TestBean.class, Demo.class,
+                            DemoEvent.class, DemoEventImpl.class));
 
     @Inject
     TestBean testBean;
 
-    // @BeforeEach
-    // public void setUp() throws Exception {
-    // LOGGER.debug("setUp...");
-    // }
-    //
-    // @AfterEach
-    // public void tearDown() throws Exception {
-    // LOGGER.debug("tearDown...");
-    // }
-
     @Test
-    public void test1() {
-        LOGGER.info("BEGIN test1...");
+    public void testEntry() {
+        LOGGER.info("BEGIN...");
+        if (testBean == null) {
+            LOGGER.error("Inject testBean is null !");
+            return;
+        }
         try {
             testBean.testConnection();
 
@@ -93,29 +76,12 @@ public class LettuceTest {
         } catch (Exception e) {
             LOGGER.error("", e);
         } finally {
-            LOGGER.info("END test1.");
+            LOGGER.info("END.");
         }
     }
 
-    static public interface DemoEvent {
-
-        public Demo getData();
-    }
-
-    static public class DemoEventImpl implements DemoEvent {
-        private final Demo data;
-
-        public DemoEventImpl(Demo data) {
-            this.data = data;
-        }
-
-        @Override
-        public Demo getData() {
-            return data;
-        }
-    }
-
-    @ApplicationScoped
+    // @ApplicationScoped
+    @Singleton
     static class TestBean {
 
         @Inject
@@ -128,8 +94,8 @@ public class LettuceTest {
         @Inject
         Event<DemoEvent> demoEvent;
 
-        private ServiceAction action;
-        private ServiceAction action1;
+        private Service service;
+        private Service service1;
 
         @PostConstruct
         void onPostConstruct() {
@@ -150,8 +116,8 @@ public class LettuceTest {
          */
         void onStart(@Observes StartupEvent event) {
             LOGGER.debug("onStart, event=" + event);
-            action = new ServiceAction(client, "client-default", demoEvent);
-            action1 = new ServiceAction(client1, "client1", demoEvent);
+            service = new Service(client, "client-default", demoEvent);
+            service1 = new Service(client1, "client-c1", demoEvent);
         }
 
         void onStop(@Observes ShutdownEvent event) {
@@ -159,10 +125,11 @@ public class LettuceTest {
         }
 
         void onDemoEvent(@Observes DemoEvent event) {
-            LOGGER.debugf(">>> onDemoEvent, event.data: %s", jsonb.toJson(event.getData()));
+            LOGGER.debugf("onDemoEvent, event.data: %s", jsonb.toJson(event.getData()));
         }
 
         void testConnection() throws Exception {
+            LOGGER.info("testConnection...");
             // (default)
             try (StatefulRedisConnection<String, String> conn = client.connect()) {
                 LOGGER.debugv("client, isOpen: {0}, isMulti: {1}", conn.isOpen(), conn.isMulti());
@@ -171,7 +138,7 @@ public class LettuceTest {
                 throw e;
             }
 
-            // (1)
+            //             (1)
             try (StatefulRedisConnection<String, String> conn = client1.connect()) {
                 LOGGER.debugv("client1, isOpen: {0}, isMulti: {1}", conn.isOpen(), conn.isMulti());
             } catch (Exception e) {
@@ -181,31 +148,31 @@ public class LettuceTest {
         }
 
         void testAction() throws Exception {
-            action.testBasic();
-            action.testAsync();
-            action.testCodec();
+            service.testBasic();
+            service.testAsync();
+            service.testCodec();
         }
 
+        //
         void testAction1() throws Exception {
-            action1.testBasic();
-            action1.testAsync();
-            action1.testCodec();
+            service1.testBasic();
+            service1.testAsync();
+            service1.testCodec();
         }
     }
 
-    static class ServiceAction {
-
-        final private LettuceRedisClient client;
-        final private String prefix;
+    static class Service {
+        private LettuceRedisClient client;
+        private String prefix;
         final private Event<DemoEvent> demoEvent;
 
-        public ServiceAction(LettuceRedisClient client, String prefix, Event<DemoEvent> demoEvent) {
+        public Service(LettuceRedisClient client, String prefix, Event<DemoEvent> demoEvent) {
             this.client = client;
             this.prefix = prefix;
             this.demoEvent = demoEvent;
         }
 
-        void testBasic() throws Exception {
+        void testBasic() {
             try (StatefulRedisConnection<String, String> connection = client.connect()) {
                 RedisCommands<String, String> sync = connection.sync();
 
@@ -258,7 +225,7 @@ public class LettuceTest {
             }
         }
 
-        void testCodec() throws Exception {
+        void testCodec() {
             try (StatefulRedisConnection<String, Demo> connection = client.connect(new DemoRedisCodec())) {
                 RedisCommands<String, Demo> sync = connection.sync();
 
@@ -293,7 +260,7 @@ public class LettuceTest {
          * @see io.lettuce.core.codec.StringCodec
          */
         static public class DemoRedisCodec implements RedisCodec<String, Demo> {
-            final private Utf8StringCodec strCodec = new Utf8StringCodec();
+            final private StringCodec strCodec = new StringCodec(StandardCharsets.UTF_8);
 
             @Override
             public String decodeKey(ByteBuffer bytes) {
@@ -320,5 +287,23 @@ public class LettuceTest {
             }
         }
 
+    }
+
+    static public interface DemoEvent {
+
+        public Demo getData();
+    }
+
+    static public class DemoEventImpl implements DemoEvent {
+        private final Demo data;
+
+        public DemoEventImpl(Demo data) {
+            this.data = data;
+        }
+
+        @Override
+        public Demo getData() {
+            return data;
+        }
     }
 }
