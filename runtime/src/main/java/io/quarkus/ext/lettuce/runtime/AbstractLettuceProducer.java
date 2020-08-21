@@ -18,7 +18,7 @@ import io.lettuce.core.RedisURI;
 /**
  * Produces Lettuce RedisClient
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
 public abstract class AbstractLettuceProducer {
     private static final Logger log = Logger.getLogger(AbstractLettuceProducer.class);
@@ -32,7 +32,7 @@ public abstract class AbstractLettuceProducer {
         }
 
         LettuceItemConfig itemConfig = itemConfigOptional.get();
-        
+
         RedisURI redisURI = RedisURI.create(itemConfig.uri);
         itemConfig.host.ifPresent(redisURI::setHost);
         itemConfig.port.ifPresent(redisURI::setPort);
@@ -76,7 +76,7 @@ public abstract class AbstractLettuceProducer {
      * Runtime
      */
     public Optional<LettuceItemConfig> getNamedItemConfig(String name) {
-        return Optional.ofNullable(lettuceConfig.namedConfig.get(name));
+         return Optional.ofNullable(lettuceConfig.namedConfig.get(name));
     }
 
     /**

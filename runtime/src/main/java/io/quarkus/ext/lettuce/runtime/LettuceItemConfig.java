@@ -10,89 +10,89 @@ import io.quarkus.runtime.annotations.ConfigItem;
 /**
  * https://lettuce.io/core/release/reference/index.html#redisuri.uri-syntax
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
 @ConfigGroup
 public class LettuceItemConfig {
 
-	/**
-	 * The Connection URI
-	 */
-	@ConfigItem
-	public String uri;
+    /**
+     * The Connection URI
+     */
+    @ConfigItem
+    public String uri;
 
-	/**
-	 * The Connection host
-	 */
-	@ConfigItem
-	public Optional<String> host;
+    /**
+     * The Connection host
+     */
+    @ConfigItem
+    public Optional<String> host;
 
-	/**
-	 * The Redis port
-	 */
-	@ConfigItem
-	public OptionalInt port;
+    /**
+     * The Redis port
+     */
+    @ConfigItem
+    public OptionalInt port;
 
-	/**
-	 * The Redis the Unix Domain Socket path.
-	 */
-	@ConfigItem
-	public Optional<String> socket;
+    /**
+     * The Redis the Unix Domain Socket path.
+     */
+    @ConfigItem
+    public Optional<String> socket;
 
-	/**
-	 * The Redis password
-	 */
-	@ConfigItem
-	public Optional<String> password;
+    /**
+     * The Redis password
+     */
+    @ConfigItem
+    public Optional<String> password;
 
-	/**
-	 * The Redis database
-	 */
-	@ConfigItem
-	public OptionalInt database;
+    /**
+     * The Redis database
+     */
+    @ConfigItem
+    public OptionalInt database;
 
-	/**
-	 * The Redis sentinel master id
-	 */
-	@ConfigItem
-	public Optional<String> sentinelMasterId;
+    /**
+     * The Redis sentinel master id
+     */
+    @ConfigItem
+    public Optional<String> sentinelMasterId;
 
-	/**
-	 * The Redis client name
-	 */
-	@ConfigItem
-	public Optional<String> clientName;
+    /**
+     * The Redis client name
+     */
+    @ConfigItem
+    public Optional<String> clientName;
 
-	/**
-	 * The Redis ssl
-	 */
-	@ConfigItem
-	public Optional<Boolean> ssl;
+    /**
+     * The Redis ssl
+     */
+    @ConfigItem
+    public Optional<Boolean> ssl;
 
-	/**
-	 * The Redis startTls
-	 */
-	@ConfigItem
-	public Optional<Boolean> startTls;
+    /**
+     * The Redis startTls
+     */
+    @ConfigItem
+    public Optional<Boolean> startTls;
 
-	/**
-	 * The Redis verify peer
-	 */
-	@ConfigItem
-	public Optional<Boolean> verifyPeer;
+    /**
+     * The Redis verify peer
+     */
+    @ConfigItem
+    public Optional<Boolean> verifyPeer;
 
-	/**
-	 * The Redis the command timeout for synchronous command execution.
-	 */
-	@ConfigItem
-	public Optional<Duration> timeout;
+    /**
+     * The Redis the command timeout for synchronous command execution.
+     */
+    @ConfigItem
+    public Optional<Duration> timeout;
 
-	@Override
-	public String toString() {
-		return super.toString().toString() + "[uri=" + uri + ", host=" + host + ", port=" + port + ", socket=" + socket
-				+ ", password=" + password + ", database=" + database + ", sentinelMasterId=" + sentinelMasterId
-				+ ", clientName=" + clientName + ", ssl=" + ssl + ", startTls=" + startTls + ", verifyPeer="
-				+ verifyPeer + ", timeout=" + timeout + "]";
-	}
+    @Override
+    public String toString() {
+        return super.toString().toString() + "[uri=" + uri + ", host=" + host + ", port=" + port + ", socket=" + socket
+                + ", password=" + password + ", database=" + database + ", sentinelMasterId=" + sentinelMasterId
+                + ", clientName=" + clientName + ", ssl=" + ssl + ", startTls=" + startTls + ", verifyPeer="
+                + verifyPeer + ", timeout=" + timeout + "]";
+    }
 
 }

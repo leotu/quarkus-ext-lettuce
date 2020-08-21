@@ -18,7 +18,7 @@ import io.lettuce.core.sentinel.api.StatefulRedisSentinelConnection;
 /**
  * Wrapper for RedisClient default constructor NPE error
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
 public class LettuceRedisClient {
     private RedisClient delegate;

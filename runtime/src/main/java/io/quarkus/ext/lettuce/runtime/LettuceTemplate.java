@@ -4,14 +4,14 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.arc.runtime.BeanContainer;
 import io.quarkus.arc.runtime.BeanContainerListener;
-import io.quarkus.runtime.annotations.Template;
+import io.quarkus.runtime.annotations.Recorder;
 
 /**
- * Quarkus Template class (runtime)
+ * Lettuce Template class (runtime)
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
-@Template
+@Recorder
 public class LettuceTemplate {
     private static final Logger log = Logger.getLogger(LettuceTemplate.class);
 
@@ -20,7 +20,6 @@ public class LettuceTemplate {
      */
     public BeanContainerListener addContainerCreatedListener(
             Class<? extends AbstractLettuceProducer> lettuceProducerClassName, LettuceConfig lettuceConfig) {
-
         return new BeanContainerListener() {
 
             /**

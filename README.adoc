@@ -2,18 +2,16 @@
 
 This is a https://github.com/quarkusio/quarkus[Quarkus] extension for https://github.com/lettuce-io/lettuce-core[Lettuce].
 
-== deployment maven
-clean install -Dmaven.test.skip=false -Dquarkus.debug.generated-classes-dir=./target/app-generated-classes
+== Supported Versions
+Quarkus 1.6.1
 
+Lettuce 5.3.3
 
-== runtime maven
-clean install -Dmaven.test.skip=true
-
- 
-== Test docker
- 
-[source,bash]
---------------
-docker pull redis:alpine
-docker run --name demo.redis -e LANG=en.UTF-8 -e LC_ALL=en.UTF-8 -p 16379:6379 -d redis:alpine --requirepass "mypwd"
---------------
+== Start Redis server
+----
+docker run -it --rm \
+--name demo.redis \
+-p 16379:6379 \
+-e LANG=en.UTF-8 -e LC_ALL=en.UTF-8 \
+-d redis:6.0-alpine --requirepass "mypwd"
+----

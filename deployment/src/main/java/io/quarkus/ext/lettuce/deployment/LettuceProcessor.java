@@ -25,7 +25,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
-import io.quarkus.deployment.builditem.substrate.ReflectiveClassBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.recording.RecorderContext;
 import io.quarkus.deployment.util.HashUtil;
 import io.quarkus.ext.lettuce.runtime.AbstractLettuceProducer;
@@ -48,15 +48,15 @@ import io.quarkus.gizmo.ResultHandle;
  * https://github.com/quarkusio/gizmo
  * </pre>
  * 
- * @author <a href="mailto:leo.tu.taipei@gmail.com">Leo Tu</a>
+ * @author Leo Tu
  */
 public class LettuceProcessor {
     private static final Logger log = Logger.getLogger(LettuceProcessor.class);
 
     private static final DotName REDIS_CLIENT_QUALIFIER = DotName.createSimple(RedisClientQualifier.class.getName());
 
-    private final String lettuceProducerClassName = AbstractLettuceProducer.class.getPackage().getName() + "."
-            + "LettuceProducer";
+    private final String lettuceProducerClassName = AbstractLettuceProducer.class.getPackage().getName()
+            + ".LettuceProducer";
 
     /**
      * Register a extension capability and feature
@@ -64,8 +64,7 @@ public class LettuceProcessor {
      * @return Lettuce feature build item
      */
     @Record(ExecutionTime.STATIC_INIT)
-    @BuildStep(providesCapabilities = "io.quarkus.ext.lettuce")
-    FeatureBuildItem featureBuildItem() {
+    FeatureBuildItem feature() {
         return new FeatureBuildItem("lettuce");
     }
 
@@ -107,7 +106,7 @@ public class LettuceProcessor {
     private boolean isUnconfigured(LettuceConfig lettuceConfig) {
         if (!isPresentUri(lettuceConfig.defaultConfig) && lettuceConfig.namedConfig.isEmpty()) {
             // No Lettuce has been configured so bail out
-            log.debug("No Lettuce has been configured");
+            log.info("No Lettuce has been configured");
             return true;
         } else {
             return false;
@@ -141,7 +140,7 @@ public class LettuceProcessor {
                     MethodDescriptor.ofMethod(AbstractLettuceProducer.class, "getDefaultItemConfig", Optional.class),
                     defaultRedisClientMethodCreator.getThis());
 
-            defaultRedisClientMethodCreator.returnValue( //
+            defaultRedisClientMethodCreator.returnValue(
                     defaultRedisClientMethodCreator
                             .invokeVirtualMethod(
                                     MethodDescriptor.ofMethod(AbstractLettuceProducer.class, "create",
