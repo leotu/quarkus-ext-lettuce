@@ -16,9 +16,9 @@ import org.jboss.logging.Logger;
 import io.lettuce.core.AbstractRedisClient;
 import io.lettuce.core.RedisClient;
 import io.quarkus.arc.deployment.BeanContainerListenerBuildItem;
+import io.quarkus.arc.deployment.BeanDefiningAnnotationBuildItem;
 import io.quarkus.arc.deployment.GeneratedBeanBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
-import io.quarkus.arc.deployment.UnremovableBeanBuildItem.BeanClassNameExclusion;
 import io.quarkus.arc.processor.DotNames;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -63,9 +63,14 @@ public class LettuceProcessor {
      *
      * @return Lettuce feature build item
      */
-    @Record(ExecutionTime.STATIC_INIT)
+    @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem("lettuce");
+    }
+    
+    @BuildStep
+    BeanDefiningAnnotationBuildItem registerAnnotation() {
+        return new BeanDefiningAnnotationBuildItem(REDIS_CLIENT_QUALIFIER);
     }
 
     @SuppressWarnings("unchecked")
@@ -121,7 +126,7 @@ public class LettuceProcessor {
                 generatedBean.produce(new GeneratedBeanBuildItem(name, data));
             }
         };
-        unremovableBeans.produce(new UnremovableBeanBuildItem(new BeanClassNameExclusion(lettuceProducerClassName)));
+        unremovableBeans.produce(UnremovableBeanBuildItem.beanClassNames(lettuceProducerClassName));
 
         ClassCreator classCreator = ClassCreator.builder().classOutput(classOutput).className(lettuceProducerClassName)
                 .superClass(AbstractLettuceProducer.class).build();
